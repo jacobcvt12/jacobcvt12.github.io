@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Parallel Rcpp for MCMC diagnostics</title>
+	<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Sans+Pro:400,300,300i,400i,600">
+	<link href='https://fonts.googleapis.com/css?family=Roboto+Mono:400,100italic,300italic,300' rel='stylesheet' type='text/css'>
+
+	
+		<link href='https://fonts.googleapis.com/css?family=Ubuntu:400,600' rel='stylesheet' type='text/css'>
+		
+	
+	<link rel="stylesheet" href="/css/main.css">
+	<link rel="stylesheet" href="/css/fontello-embedded.css">	
+</head>
+<body>
+	<div id="wrapper">
+		<div id="main">
+			<nav class="nav">
+				<div class="container">
+		  			<a href="">
+						<h1 style="font-family: Ubuntu" class="logo"> 
+						
+							Statistical Computing for Bayesian Inference and Forecasting 
+						
+						</h1>
+					</a>
+		  			<ul class="navlist">
+		  			</ul>
+		  		</div>
+			</nav>
+			<div class="content post container">
+	<h1 class="post-title">Parallel Rcpp for MCMC diagnostics</h1>
+	<div class="post-date">
+		<time>February 23, 2016</time>
+	</div>
+	<p><img src="/assets/img/multi-chains.jpg" alt="Hypothetical Multiple MCMC Chains" /></p>
+
+<p>A common issue in Bayesian statistics and Markov Chain Monte Carlo is the concept of convergence. When approximating parameters by MCMC, we expect the chains to converge to the <em>stationary distributions</em>. Visual inspection of a MCMC traceplot can suggest convergence, but a more robust solution is to use <em>multiple chains</em>. If multiple have arrived at the same distribution, then we can be more certain of convergence.</p>
+
+<p>One of the key challenges with multiple chains is that MCMC simulations are often computationally intensive. Even if the sampler is written in a compiled language, running two or three chains sequentially will double or triple what may already be a lengthy process. In this post, I show how to use Open-MP for <em>parallelizing</em> MCMC simulations. After doing so, the same code with 2-3 chains will likely only take slightly longer than one chain.</p>
+
+<h1 id="convergence-criteria">Convergence Criteria</h1>
+
+<p>There are several diagnostics for quantifying convergence, but the Gelman-Rubin diagnostic <a href="#gelman1992">(Gelman &amp; Rubin, 1992)</a> is most commonly used. The Gelman-Rubin diagnostic requires that the parameter in question must be <em>approximately normal</em>.</p>
+
+<p>Convergence is assessed by parameter (one parameter may have converged, but a second parameter may not have). Here <em>i</em> indicates the MCMC iteration, and <em>j</em> indicates the chain number. Note that the <em>burn-in</em> portion of a MCMC simulation is not included in the calculation of this diagnostic. The Gelman-Rubin diagnostic is calculated as follows.</p>
+
+<p>First, the variance of each chain of a parameter is calculated</p>
+
+<script type="math/tex; mode=display">s_j^2 = \frac{1}{n-1}\sum_i^n(\theta_{ij}-\bar{\theta}_j)^2</script>
+
+<p>Next, the within chain variance is calculated by taking the mean of these variances</p>
+
+<script type="math/tex; mode=display">W=\frac{1}{m}\sum_i^m s_j^2</script>
+
+<p>The between chain variance is calculated as</p>
+
+<script type="math/tex; mode=display">B=\frac{m}{n-1}\sum_1^m (\bar{\theta}_j-\bar{\bar{\theta}})^2</script>
+
+<p>where <script type="math/tex">\bar{\bar{\theta}}=\frac{1}{m}\sum_i^m \bar{\theta}_j</script></p>
+
+<p>Finally, the variance of the stationary distribution is</p>
+
+<script type="math/tex; mode=display">\left(1-\frac{1}{n}\right)W + \frac{1}{n} B</script>
+
+<p>And the Gelman-Rubin diagnostic is just the square root of this value divided by the within chain variance.</p>
+
+<p>For a univariate parameter, it is appropriate to use a matrix to handle multiple MCMC chains of samples from the stationary distribution. Consider the columns to be individual chains and the rows to represent MCMC samples. The following is an R function to calculate the Gelman-Rubin diagnostic of a parameter stored in such a fashion.</p>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">gelman.rubin</span> <span class="o">&lt;-</span> <span class="k">function</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># mcmc information
+</span>    <span class="n">n</span> <span class="o">&lt;-</span> <span class="n">nrow</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="c1"># number of iterations
+</span>    <span class="n">m</span> <span class="o">&lt;-</span> <span class="n">ncol</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="c1"># number of chains
+</span>
+    <span class="c1"># calculate the mean of the means
+</span>    <span class="n">theta.bar.bar</span> <span class="o">&lt;-</span> <span class="n">mean</span><span class="p">(</span><span class="n">colMeans</span><span class="p">(</span><span class="n">param</span><span class="p">))</span>
+
+    <span class="c1"># within chain variance
+</span>    <span class="n">W</span> <span class="o">&lt;-</span> <span class="n">mean</span><span class="p">(</span><span class="n">apply</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="n">var</span><span class="p">))</span>
+
+    <span class="c1"># between chain variance
+</span>    <span class="n">B</span> <span class="o">&lt;-</span> <span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="m">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">sum</span><span class="p">((</span><span class="n">colMeans</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="o">-</span> <span class="n">theta.bar.bar</span><span class="p">)</span> <span class="o">^</span> <span class="m">2</span><span class="p">)</span>
+
+    <span class="c1"># variance of stationary distribution
+</span>    <span class="n">theta.var.hat</span> <span class="o">&lt;-</span> <span class="p">(</span><span class="m">1</span> <span class="o">-</span> <span class="m">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">W</span> <span class="o">+</span> <span class="m">1</span> <span class="o">/</span> <span class="n">n</span> <span class="o">*</span> <span class="n">B</span>
+
+    <span class="c1"># Potential Scale Reduction Factor (PSRF)
+</span>    <span class="n">R.hat</span> <span class="o">&lt;-</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">theta.var.hat</span> <span class="o">/</span> <span class="n">W</span><span class="p">)</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">R.hat</span><span class="p">)</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>A parameter is usually considered converged when the Gelman-Rubin statistic is <script type="math/tex">% <![CDATA[
+<1.1 %]]></script>. If your parameter has not converged, this can <em>usually</em> be fixed by increasing the number of burnin iterations.</p>
+
+<p>Check out the <a href="https://github.com/jacobcvt12/RcppParallelExample">Parallel Example package</a> for implementation details.</p>
+
+<h1 id="parallel-chains">Parallel Chains</h1>
+
+<p>Below is C++ code for approximating the mean and variance of a normal distribution. This approximation is performed by a Gibbs Sampler with the following full conditionals</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+\mu_* &\sim \text{N}(\mu_n, t^2_n) \\ 
+s^2_* &\sim \text{IG}\left(\frac{\nu_n}{2}, \frac{\nu_n s^2_n}{2}\right) 
+\end{align} %]]></script>
+
+<p>where</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+\mu_n & = \frac{\mu_0 / t^2_0 + n \bar{y} (1 / s^2)}{1 / t^2_0 + n (1 / s^2)} \\
+t^2_n & = \frac{1}{1 / t^2_0 + n / s^2} \\
+nu_n & = nu_0 + n \\
+s^2_n & = \frac{\nu_0 s^2_0 + (n-1) \text{Var}(y) + n (\bar{y}-\mu)^2}{\nu_n}
+\end{align} %]]></script>
+
+<p>This sampler is implemented in C++ via Rcpp <a href="#eddelbuettel2011">(Eddelbuettel &amp; François, 2011)</a> and parallelized using open-MP.</p>
+
+<figure class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="cp">#include &lt;RcppArmadillo.h&gt;
+#include &lt;cmath&gt;
+#include &lt;omp.h&gt;
+</span>
+<span class="c1">// [[Rcpp::export]]
+</span><span class="n">Rcpp</span><span class="o">::</span><span class="n">List</span> <span class="n">normal_gibbs</span><span class="p">(</span><span class="n">arma</span><span class="o">::</span><span class="n">vec</span> <span class="n">data</span><span class="p">,</span> <span class="kt">double</span> <span class="n">mu0</span><span class="p">,</span> <span class="kt">double</span> <span class="n">t20</span><span class="p">,</span> <span class="kt">double</span> <span class="n">nu0</span><span class="p">,</span> <span class="kt">double</span> <span class="n">s20</span><span class="p">,</span> 
+                        <span class="kt">int</span> <span class="n">burnin</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="kt">int</span> <span class="n">iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="kt">int</span> <span class="n">chains</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// initialize parameters
+</span>    <span class="kt">double</span> <span class="n">data_mean</span> <span class="o">=</span> <span class="n">arma</span><span class="o">::</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+    <span class="kt">double</span> <span class="n">data_var</span> <span class="o">=</span> <span class="n">arma</span><span class="o">::</span><span class="n">var</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+    <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">data</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    <span class="kt">double</span> <span class="n">mu</span> <span class="o">=</span> <span class="n">data_mean</span><span class="p">;</span>
+    <span class="kt">double</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">data_var</span><span class="p">;</span>
+
+    <span class="c1">// initialize chains
+</span>    <span class="n">arma</span><span class="o">::</span><span class="n">mat</span> <span class="n">mu_chain</span><span class="p">(</span><span class="n">iter</span><span class="p">,</span> <span class="n">chains</span><span class="p">);</span>
+    <span class="n">arma</span><span class="o">::</span><span class="n">mat</span> <span class="n">s2_chain</span><span class="p">(</span><span class="n">iter</span><span class="p">,</span> <span class="n">chains</span><span class="p">);</span>
+
+    <span class="cp">#pragma omp parallel for num_threads(chains)
+</span>    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">chain</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">chain</span> <span class="o">&lt;</span> <span class="n">chains</span><span class="p">;</span> <span class="o">++</span><span class="n">chain</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// burnin
+</span>        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="n">burnin</span><span class="p">;</span> <span class="o">++</span><span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// update mu
+</span>            <span class="kt">double</span> <span class="n">mu_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu0</span> <span class="o">/</span> <span class="n">t20</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">data_mean</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">s2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">t20</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">s2</span><span class="p">));</span>
+            <span class="kt">double</span> <span class="n">t2_n</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">t20</span> <span class="o">+</span> <span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">s2</span><span class="p">));</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">arma</span><span class="o">::</span><span class="n">conv_to</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;::</span><span class="n">from</span><span class="p">(</span><span class="n">rnormArma</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mu_n</span><span class="p">,</span> <span class="n">t2_n</span><span class="p">));</span>
+
+            <span class="c1">// update s2
+</span>            <span class="kt">double</span> <span class="n">nu_n</span> <span class="o">=</span> <span class="n">nu0</span> <span class="o">+</span> <span class="n">n</span><span class="p">;</span>
+            <span class="kt">double</span> <span class="n">s2_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">nu0</span> <span class="o">*</span> <span class="n">s20</span> <span class="o">+</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">data_var</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">pow</span><span class="p">(</span><span class="n">data_mean</span> <span class="o">-</span> <span class="n">mu</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="n">nu_n</span><span class="p">;</span>
+            <span class="n">s2</span> <span class="o">=</span> <span class="n">arma</span><span class="o">::</span><span class="n">conv_to</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;::</span><span class="n">from</span><span class="p">(</span><span class="n">arma</span><span class="o">::</span><span class="n">randg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">arma</span><span class="o">::</span><span class="n">distr_param</span><span class="p">(</span><span class="n">nu_n</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">/</span> <span class="p">(</span><span class="n">nu_n</span> <span class="o">*</span><span class="n">s2_n</span><span class="p">))));</span>
+        <span class="p">}</span>
+
+        <span class="c1">// sample from stationary distribution
+</span>        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">s</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">s</span> <span class="o">&lt;</span> <span class="n">iter</span><span class="p">;</span> <span class="o">++</span><span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// update mu
+</span>            <span class="kt">double</span> <span class="n">mu_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu0</span> <span class="o">/</span> <span class="n">t20</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">data_mean</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">s2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">t20</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">s2</span><span class="p">));</span>
+            <span class="kt">double</span> <span class="n">t2_n</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">t20</span> <span class="o">+</span> <span class="n">n</span> <span class="o">/</span> <span class="p">(</span><span class="n">s2</span><span class="p">));</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">arma</span><span class="o">::</span><span class="n">conv_to</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;::</span><span class="n">from</span><span class="p">(</span><span class="n">rnormArma</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mu_n</span><span class="p">,</span> <span class="n">t2_n</span><span class="p">));</span>
+
+            <span class="c1">// update s2
+</span>            <span class="kt">double</span> <span class="n">nu_n</span> <span class="o">=</span> <span class="n">nu0</span> <span class="o">+</span> <span class="n">n</span><span class="p">;</span>
+            <span class="kt">double</span> <span class="n">s2_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">nu0</span> <span class="o">*</span> <span class="n">s20</span> <span class="o">+</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">data_var</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">pow</span><span class="p">(</span><span class="n">data_mean</span> <span class="o">-</span> <span class="n">mu</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="n">nu_n</span><span class="p">;</span>
+            <span class="n">s2</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">arma</span><span class="o">::</span><span class="n">conv_to</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;::</span><span class="n">from</span><span class="p">(</span><span class="n">arma</span><span class="o">::</span><span class="n">randg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">arma</span><span class="o">::</span><span class="n">distr_param</span><span class="p">(</span><span class="n">nu_n</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">/</span> <span class="p">(</span><span class="n">nu_n</span> <span class="o">*</span><span class="n">s2_n</span><span class="p">))));</span>
+
+            <span class="c1">// store values
+</span>            <span class="n">mu_chain</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">chain</span><span class="p">)</span> <span class="o">=</span> <span class="n">mu</span><span class="p">;</span>
+            <span class="n">s2_chain</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">chain</span><span class="p">)</span> <span class="o">=</span> <span class="n">s2</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+
+    <span class="k">return</span> <span class="n">Rcpp</span><span class="o">::</span><span class="n">List</span><span class="o">::</span><span class="n">create</span><span class="p">(</span><span class="n">Rcpp</span><span class="o">::</span><span class="n">Named</span><span class="p">(</span><span class="s">"mu"</span><span class="p">)</span><span class="o">=</span><span class="n">mu_chain</span><span class="p">,</span>
+                              <span class="n">Rcpp</span><span class="o">::</span><span class="n">Named</span><span class="p">(</span><span class="s">"s2"</span><span class="p">)</span><span class="o">=</span><span class="n">s2_chain</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>To add the openmp flag to the compiler, add the following two lines to your <code class="highlighter-rouge">src/Makevars</code> file</p>
+
+<figure class="highlight"><pre><code class="language-make" data-lang="make"><span class="nv">PKG_CXXFLAGS</span> <span class="o">=</span> <span class="nv">$(SHLIB_OPENMP_CXXFLAGS)</span> -fopenmp
+<span class="nv">PKG_LIBS</span> <span class="o">=</span> <span class="nv">$(SHLIB_OPENMP_CXXFLAGS)</span><span class="err"> -fopenmp</span></code></pre></figure>
+
+<p>There are 4 key differences between this code and a single-threaded Gibbs sampler</p>
+
+<p>1) The use of <code class="highlighter-rouge">#include &lt;omp.h&gt;</code></p>
+
+<p>2) The preprocessor statement <code class="highlighter-rouge">#pragma omp parallel for num_threads(chains)</code> before the <code class="highlighter-rouge">for</code> loop around the chains. This preprocessor command is what indicates parallelization. The number of threads can (and is in this case) be a variable. Additionally, all variables in the scope above the preprocessor command are <em>shared</em> amongst the threads unless otherwise specified.</p>
+
+<p>3) All variables used for the Gibbs Sampler (the multi-threaded portion) <strong>must</strong> be from a thread-safe library, such as the C++ STL or armadillo. The standard <code class="highlighter-rouge">Rcpp</code> types are not thread-safe, and may not be used.</p>
+
+<p>4) The compiler must be made aware of open-MP by a flag. These instructions are passed to the compiler via the commands in <code class="highlighter-rouge">src/Makevars</code></p>
+
+<p>Some caveats: not every compiler supports openmp. For example, the default <code class="highlighter-rouge">clang</code> compiler on OS X will not compile the above code. An alternative is to use <code class="highlighter-rouge">gcc</code> via <a href="http://brew.sh">homebrew</a> installed with the command <code class="highlighter-rouge">brew install gcc --without-multilib</code>. On most linux distributions, <code class="highlighter-rouge">gcc</code> should compile C++ with open-MP without additional configuration.</p>
+
+<h1 id="results">Results</h1>
+
+<p>To investigate performance of parallel chains using open-MP, I simulated data from a normal distribution with 1,000, 10,000, 100,000, and 1,000,000 observations and benchmarked the above code with 1,000 iterations and 1,000 burnins. Below is a density plot of the timings (in milliseconds) by chain number as well as number of observations in the simulated data.</p>
+
+<p><img src="/assets/img/multi-chains-timings.jpg" alt="Multiple MCMC Chains Timings" /></p>
+
+<p>While there is some overhead with adding an additional thread, going from 1 to 2 chains and 3 to 4 chains is mostly negligible. A more computationally intensive model would demonstrate the time savings of using open-MP for parallel chains even further.</p>
+
+<p>For an additional example of open-MP for parallel MCMC chains see <a href="https://github.com/jacobcvt12/RcppMixtureModel">this Mixture Model package</a>.</p>
+
+<h1 id="references">References</h1>
+
+<ol class="bibliography"><li><span id="gelman1992">Gelman, A., &amp; Rubin, D. B. (1992). Inference from Iterative Simulation Using Multiple Sequences. <i>Statistical Science</i>, <i>7</i>(4), 457–472. doi:10.1214/ss/1177011136</span></li>
+<li><span id="eddelbuettel2011">Eddelbuettel, D., &amp; François, R. (2011). Rcpp: Seamless R and C++ Integration. <i>Journal Of Statistical Software</i>, <i>40</i>(8), 1–18. Retrieved from http://www.jstatsoft.org/v40/i08/</span></li></ol>
+
+
+</div>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<div class="share-section">
+	<div class="container">
+		<div class="alignable pull-right">
+			<p> Share : 
+				<a target="_blank" href="https://twitter.com/intent/tweet?text=Parallel Rcpp for MCMC diagnostics&url=http://jacobcvt12.gitub.io/2016/parallel-diagnostics.html"><i class="icon-twitter"></i></a>
+				<a target="_blank" href="https://facebook.com/sharer/sharer.php?_rdr=p&u=http://jacobcvt12.gitub.io/2016/parallel-diagnostics.html"><i class="icon-facebook"></i></a>
+			</p>
+		</div>
+	</div>
+</div>
+
+
+<hr class="gradient">
+<section class="about-footer">
+	<div class="container about-footer-div">
+		
+			<img class="profile-picture" src="/assets/img/jacobcarey.jpeg">
+			</img>
+		
+		
+			<a class="deactivate-link" href="/about"><h2>Jacob Carey</h2></a>
+		
+		
+	</div>
+</section>
+<hr class="gradient">
+
+
+
+
+<aside id="comments" class="disqus">
+	<div class="container">
+		<h3 class="alignable pull-left"> Comments </h3> <h3 class="alignable pull-right"> <i class="icon-disqus"></i></h3>
+        <div id="disqus_thread"></div>
+        <script>
+            var disqus_developer = 1; // Comment out when the site is live
+        /**
+        * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+        * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+        */
+        /*
+           var disqus_config = function () {
+           this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+           this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+           };
+           */
+        (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+
+            s.src = '//statisticalcomputing.disqus.com/embed.js';
+
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</aside>
+
+
+
+		</div>
+		<div id="footer">
+			<footer>
+	<div class="container">
+		<div class="left-column-footer">
+			<p class="pull-left alignable">Statistical Computing for Bayesian Inference and Forecasting &copy; <script language="JavaScript" type="text/javascript">
+		now = new Date
+		theYear=now.getYear()
+		if (theYear < 1900)
+		theYear=theYear+1900
+		document.write(theYear)
+	</script></p>
+		</div>
+		<div class="right-column-footer">
+			<p class="pull-right alignable"> 
+				<a class="deactivate-link" href="/about">About</a>
+				| <a href="http://github.com/jacobcvt12"><i class="icon-github-circled"></i></a>
+			</p>
+		</div>
+		<div style="clear: both"></div>
+	</div>
+	
+		<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-73774891-1', 'auto');
+	  ga('send', 'pageview');
+
+		</script>
+	
+</footer>
+
+		</div>
+	</div>
+</body>
+</html>
