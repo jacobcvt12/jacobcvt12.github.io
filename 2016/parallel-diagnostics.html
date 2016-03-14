@@ -19,7 +19,7 @@
 		<div id="main">
 			<nav class="nav">
 				<div class="container">
-		  			<a href="">
+		  			<a href="/">
 						<h1 style="font-family: Ubuntu" class="logo"> 
 						
 							Statistical Computing for Bayesian Inference and Forecasting 
@@ -35,7 +35,7 @@
 	<div class="post-date">
 		<time>February 23, 2016</time>
 	</div>
-	<p><img src="/assets/img/multi-chains.jpg" alt="Hypothetical Multiple MCMC Chains" /></p>
+	<p><img src="/assets/img/multi-chains.svg" alt="Hypothetical Multiple MCMC Chains" /></p>
 
 <p>A common issue in Bayesian statistics and Markov Chain Monte Carlo is the concept of convergence. When approximating parameters by MCMC, we expect the chains to converge to the <em>stationary distributions</em>. Visual inspection of a MCMC traceplot can suggest convergence, but a more robust solution is to use <em>multiple chains</em>. If multiple have arrived at the same distribution, then we can be more certain of convergence.</p>
 
@@ -196,7 +196,7 @@ s^2_n & = \frac{\nu_0 s^2_0 + (n-1) \text{Var}(y) + n (\bar{y}-\mu)^2}{\nu_n}
 
 <p>To investigate performance of parallel chains using open-MP, I simulated data from a normal distribution with 1,000, 10,000, 100,000, and 1,000,000 observations and benchmarked the above code with 1,000 iterations and 1,000 burnins. Below is a density plot of the timings (in milliseconds) by chain number as well as number of observations in the simulated data.</p>
 
-<p><img src="/assets/img/multi-chains-timings.jpg" alt="Multiple MCMC Chains Timings" /></p>
+<p><img src="/assets/img/multi-chains-timings.svg" alt="Multiple MCMC Chains Timings" /></p>
 
 <p>While there is some overhead with adding an additional thread, going from 1 to 2 chains and 3 to 4 chains is mostly negligible. A more computationally intensive model would demonstrate the time savings of using open-MP for parallel chains even further.</p>
 
@@ -226,8 +226,7 @@ s^2_n & = \frac{\nu_0 s^2_0 + (n-1) \text{Var}(y) + n (\bar{y}-\mu)^2}{\nu_n}
 <section class="about-footer">
 	<div class="container about-footer-div">
 		
-			<img class="profile-picture" src="/assets/img/jacobcarey.jpeg">
-			</img>
+			<img class="profile-picture" src="/assets/img/jacobcarey.jpeg"alt="Jacob Carey" />
 		
 		
 			<a class="deactivate-link" href="/about"><h2>Jacob Carey</h2></a>
@@ -242,7 +241,6 @@ s^2_n & = \frac{\nu_0 s^2_0 + (n-1) \text{Var}(y) + n (\bar{y}-\mu)^2}{\nu_n}
 
 <aside id="comments" class="disqus">
 	<div class="container">
-		<h3 class="alignable pull-left"> Comments </h3> <h3 class="alignable pull-right"> <i class="icon-disqus"></i></h3>
         <div id="disqus_thread"></div>
         <script>
             var disqus_developer = 1; // Comment out when the site is live
@@ -266,6 +264,7 @@ s^2_n & = \frac{\nu_0 s^2_0 + (n-1) \text{Var}(y) + n (\bar{y}-\mu)^2}{\nu_n}
         })();
         </script>
         <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+    </div>
 </aside>
 
 

@@ -5,13 +5,158 @@
     <description>A blog about Bayesian statistics with an emphasis on computational challenges</description>
     <link>http://jacobcvt12.gitub.io/</link>
     <atom:link href="http://jacobcvt12.gitub.io/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 23 Feb 2016 15:48:23 -0500</pubDate>
-    <lastBuildDate>Tue, 23 Feb 2016 15:48:23 -0500</lastBuildDate>
+    <pubDate>Mon, 14 Mar 2016 00:19:20 -0400</pubDate>
+    <lastBuildDate>Mon, 14 Mar 2016 00:19:20 -0400</lastBuildDate>
     <generator>Jekyll v3.0.3</generator>
     
       <item>
+        <title>Creating Hierarchical Model Diagrams with LaTeX</title>
+        <description>&lt;p&gt;Bayesian models are often considered in a hierarchical fashion. Even when there is no multilevel structure to the data, the model can still be implicitly hierarchical due to the relationship of hyperparameters, parameters of interest, and data. The complicated structure of hierarchical models can be difficult to communicate to an audience using only random variable notation. A graphical &lt;em&gt;diagram&lt;/em&gt; can be a helpful tool instead of or in addition to such notation. In this post, I show how to create diagrams for such hierarchical models.&lt;/p&gt;
+
+&lt;p&gt;For a simple hierarchical Bayesian model, the structure can be described by a series of likelihoods, random variables, and the distributions which they follow. For example, the number of cases of pancreatic cancer may have been collected by county (with hypothetically standardized population sizes). A simple model for learning about this data could use a Poisson likelihood and a Gamma prior on the mean cancer cases with parameters &lt;em&gt;a&lt;/em&gt; and &lt;em&gt;b&lt;/em&gt;.&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{align}
+y_i &amp; \sim \text{Poisson}(\theta) \\
+\theta &amp; \sim \text{Gamma}(a, b)
+\end{align} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;While the above presentation of this simple model is concise and easy to understand, models with multiple levels of hierarchy can become unwieldy to describe in such a manner. Instead, the relationships between data and parameters is clearer and more interpretable through a diagram.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/hierarchical-comparison.svg&quot; alt=&quot;Just number&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I have created this diagram with the \(\LaTeX\) library Ti&lt;em&gt;k&lt;/em&gt;Z &lt;a href=&quot;#tantau2013&quot;&gt;(Tantau, 2013)&lt;/a&gt;. While there are several packages within Ti&lt;em&gt;k&lt;/em&gt;Z for creating graphics, I have found &lt;code class=&quot;highlighter-rouge&quot;&gt;matrix&lt;/code&gt; to be the most concise and easiest to learn.&lt;/p&gt;
+
+&lt;h1 id=&quot;tikz-and-diagrams-for-hierarchical-models&quot;&gt;Ti&lt;em&gt;k&lt;/em&gt;Z and diagrams for hierarchical models&lt;/h1&gt;
+
+&lt;p&gt;The necessary preamble and code for creating a Ti&lt;em&gt;k&lt;/em&gt;Z graphic is&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-tex&quot; data-lang=&quot;tex&quot;&gt;&lt;span class=&quot;k&quot;&gt;\documentclass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;article&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;\usepackage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;tikz&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;\usepackage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;amsmath&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; 
+&lt;span class=&quot;k&quot;&gt;\usetikzlibrary&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;matrix&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;% note this is in the preamble&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;\begin{document}&lt;/span&gt;
+
+&lt;span class=&quot;nt&quot;&gt;\begin{tikzpicture}&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;% diagram here&lt;/span&gt;
+
+&lt;span class=&quot;nt&quot;&gt;\end{tikzpicture}&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;\end{document}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;To replicate the diagrams below, paste the code above the diagram into the section commented &lt;code class=&quot;highlighter-rouge&quot;&gt;% diagram here&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;To begin building a diagram, note that a Ti&lt;em&gt;k&lt;/em&gt;Z matrix should be thought of in terms of a linear algebra matrix. This matrix diagram is specified using &lt;code class=&quot;highlighter-rouge&quot;&gt;\matrix&lt;/code&gt; followed by options of the matrix and the name of the matrix (here chosen to be &lt;code class=&quot;highlighter-rouge&quot;&gt;mat&lt;/code&gt;). Cells on the same row are separated by &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;amp;&lt;/code&gt;’s, and new rows are begun by &lt;code class=&quot;highlighter-rouge&quot;&gt;\\&lt;/code&gt;. If one row has more columns than the others (more &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;amp;&lt;/code&gt;’s), the other rows will have columns implicitly added to maintain a rectangular shape.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-tex&quot; data-lang=&quot;tex&quot;&gt;&lt;span class=&quot;k&quot;&gt;\matrix&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[matrix of nodes]&lt;/span&gt; (mat)
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    1 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; 2 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; 3 &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    4 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; 5 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; 6 &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    7 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; 8 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; 9 &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/hierarchical-graph-1.svg&quot; alt=&quot;Just number&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;For this matrix to look anything like a diagram of a hierarchical structure, we first need to replace the numbers with random variables and specify an option to spread the columns and rows further apart. To use &lt;code class=&quot;highlighter-rouge&quot;&gt;math mode&lt;/code&gt; for the nodes (Ti&lt;em&gt;k&lt;/em&gt;Z name for our parameters and data), we indicate the option &lt;code class=&quot;highlighter-rouge&quot;&gt;matrix of math nodes&lt;/code&gt;. Additionally, we pass an option for separation of columns and rows. You may have to play with these distances, but I have found &lt;code class=&quot;highlighter-rouge&quot;&gt;20pt&lt;/code&gt; to be an appropriate size for most hierarchical diagrams.&lt;/p&gt;
+
+&lt;p&gt;Another point to make about the Ti&lt;em&gt;k&lt;/em&gt;Z matrix is that empty “cells” are allowed. As you can see below, the top row doesn’t have values in the first cell (&lt;em&gt;before&lt;/em&gt; the first &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;amp;&lt;/code&gt;) or the last cell (&lt;em&gt;after&lt;/em&gt; the second &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;amp;&lt;/code&gt;). This is convenient for when wish to denote one parameter as being a higher level of hierarchy with multiple “children” parameters or data points in the next level of hierarchy.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-tex&quot; data-lang=&quot;tex&quot;&gt;&lt;span class=&quot;k&quot;&gt;\matrix&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[matrix of math nodes, column sep=20pt, row sep=20pt]&lt;/span&gt; (mat)
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\mu&lt;/span&gt;, &lt;span class=&quot;k&quot;&gt;\tau&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;2 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;1 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;n &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    y&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;1 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; y&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;n &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\sigma&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;2 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/hierarchical-graph-2.svg&quot; alt=&quot;Just math&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Finally, to make the diagram worthwhile, we need to add directional arrows between the nodes and possibly text annotation to each level. For this step, we reference nodes by name to draw arrows. Node names are based on the name of matrix as well as the location of the cell using the rule &lt;code class=&quot;highlighter-rouge&quot;&gt;named-of-matrix_row-number_col-number&lt;/code&gt;. In our example above, \(\sigma^2\) could be referenced by &lt;code class=&quot;highlighter-rouge&quot;&gt;mat-4-2&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;To add these lines and descriptions, we first construct the matrix as before. Next, the &lt;code class=&quot;highlighter-rouge&quot;&gt;\draw&lt;/code&gt; command draws a line from one node to the next. The first option (here &lt;code class=&quot;highlighter-rouge&quot;&gt;-&amp;gt;&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;lt;-&lt;/code&gt;) specifies the direction of the arrow. I have placed the (shared) variance below the observations (\(y_i\)) and reversed the direction of the arrows to indicated hierarchy level. The second option listed (not required) specifies the type of arrowhead. To simplify the process, I use a &lt;code class=&quot;highlighter-rouge&quot;&gt;\foreach&lt;/code&gt; loop to draw similar lines for columns 1 and 3.&lt;/p&gt;
+
+&lt;p&gt;Next, the text descriptions are created via manually specified nodes. These nodes are “anchored” to already existing nodes in the diagram and placed relative to this anchor by distance and direction. Here I have chosen &lt;code class=&quot;highlighter-rouge&quot;&gt;-40pt&lt;/code&gt; as my distance. Unfortunately, this number depends on the length of the text, and I have not found a better way for determining the distance other than through trial-and-error.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-tex&quot; data-lang=&quot;tex&quot;&gt;&lt;span class=&quot;k&quot;&gt;\matrix&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[matrix of math nodes, column sep=20pt, row sep=20pt]&lt;/span&gt; (mat)
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\mu&lt;/span&gt;, &lt;span class=&quot;k&quot;&gt;\tau&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;2 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt; 
+    &lt;span class=&quot;k&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;1 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;n &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;1,1&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;, &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt;, y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;n&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;1, 1&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;1, J&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;, 
+    &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt;, y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;n&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;J, J&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\sigma&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;2 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;;
+
+&lt;span class=&quot;k&quot;&gt;\foreach&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt; in &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;1, 3&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[-&amp;gt;,&amp;gt;=latex]&lt;/span&gt; (mat-1-2) -- (mat-2-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;);
+    &lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[-&amp;gt;,&amp;gt;=latex]&lt;/span&gt; (mat-2-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;) -- (mat-3-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;);
+    &lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[&amp;lt;-,&amp;gt;=latex]&lt;/span&gt; (mat-3-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;) -- (mat-4-2);
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;\node&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[anchor=east]&lt;/span&gt; at ([xshift =-40pt]mat-2-1) 
+&lt;span class=&quot;p&quot;&gt;{$&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;j &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\sim&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\mu&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;, &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\tau&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;$}&lt;/span&gt;;
+&lt;span class=&quot;k&quot;&gt;\node&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[anchor=east]&lt;/span&gt; at ([xshift =-40pt]mat-3-1) 
+&lt;span class=&quot;p&quot;&gt;{$&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;i, j&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\sim&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;j, &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\sigma&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;$}&lt;/span&gt;;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/hierarchical-graph-3.svg&quot; alt=&quot;Include arrows and names&quot; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;a-few-tweaks&quot;&gt;A few tweaks&lt;/h1&gt;
+
+&lt;p&gt;Sometimes, a model can be clarified by increasing the width between particular parameters or data. This can be done manually via an option to the &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;amp;&lt;/code&gt;. Additionally, you may want to highlight important parameters with a color.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-tex&quot; data-lang=&quot;tex&quot;&gt;&lt;span class=&quot;k&quot;&gt;\matrix&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[matrix of math nodes, column sep=20pt, row sep=20pt]&lt;/span&gt; (mat)
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\mu&lt;/span&gt;, &lt;span class=&quot;k&quot;&gt;\tau&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;2 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt;[4em] &lt;span class=&quot;k&quot;&gt;\beta&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt; 
+    &lt;span class=&quot;k&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;1 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;n &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\alpha&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;1,1&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;, &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt;, y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;n&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;1, 1&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;1, J&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;, 
+    &lt;span class=&quot;k&quot;&gt;\ldots&lt;/span&gt;, y&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;n&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;J, J&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; |[blue]| &lt;span class=&quot;k&quot;&gt;\sigma&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;2 &lt;span class=&quot;p&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\\&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;;
+
+&lt;span class=&quot;k&quot;&gt;\foreach&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt; in &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;1, 3&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[-&amp;gt;,&amp;gt;=latex]&lt;/span&gt; (mat-1-2) -- (mat-2-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;);
+    &lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[-&amp;gt;,&amp;gt;=latex]&lt;/span&gt; (mat-2-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;) -- (mat-3-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;);
+    &lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[&amp;lt;-,&amp;gt;=latex]&lt;/span&gt; (mat-3-&lt;span class=&quot;k&quot;&gt;\column&lt;/span&gt;) -- (mat-4-2);
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[-&amp;gt;,&amp;gt;=latex]&lt;/span&gt; (mat-1-4) -- (mat-2-4);
+&lt;span class=&quot;k&quot;&gt;\draw&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[-&amp;gt;,&amp;gt;=latex]&lt;/span&gt; (mat-2-4) -- (mat-3-3);
+
+&lt;span class=&quot;k&quot;&gt;\node&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[anchor=east]&lt;/span&gt; at ([xshift =-40pt]mat-2-1) 
+&lt;span class=&quot;p&quot;&gt;{$&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;j &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\sim&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\mu&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;, &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\tau&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;$}&lt;/span&gt;;
+&lt;span class=&quot;k&quot;&gt;\node&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;[anchor=east]&lt;/span&gt; at ([xshift =-40pt]mat-3-1) 
+&lt;span class=&quot;p&quot;&gt;{$&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;i, j&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\sim&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\text&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\theta&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;j &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\alpha&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;, &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;\sigma&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;$}&lt;/span&gt;;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/img/hierarchical-graph-4.svg&quot; alt=&quot;Different Spacing&quot; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;some-pitfalls-and-caveats&quot;&gt;Some pitfalls and caveats&lt;/h1&gt;
+
+&lt;p&gt;Using the &lt;code class=&quot;highlighter-rouge&quot;&gt;matrix&lt;/code&gt; library limits one to a model that has nodes structured in a martrix formart. For example, if there are four paramaters at one level, but three on another level, you will either have ragged levels (ugly!), or have to structure your matrix to have 12 columns, with many empty nodes (tedious). For a situation like this, you may be better off using a different Ti&lt;em&gt;k&lt;/em&gt;Z package.&lt;/p&gt;
+
+&lt;p&gt;Additionally, the learning curve of creating hierarchical diagrams with \(\LaTeX\) is certainly higher than using a software like Adobe Illustrator. However, besides the obvious benefit of \(\LaTeX\) being free and open source, \(\LaTeX\) can be combined with &lt;code class=&quot;highlighter-rouge&quot;&gt;knitr&lt;/code&gt; &lt;a href=&quot;#xie2015&quot;&gt;(Xie, 2015)&lt;/a&gt; where the diagrams and analysis can be managed in one document.&lt;/p&gt;
+
+&lt;p&gt;Finally, for the sake of clarity, I have avoided using shorter syntax at points. For example, the arrowhead option &lt;code class=&quot;highlighter-rouge&quot;&gt;&amp;gt;=latex&lt;/code&gt; can be given as an option to &lt;code class=&quot;highlighter-rouge&quot;&gt;\begin{tikzpicture}&lt;/code&gt; instead of to each &lt;code class=&quot;highlighter-rouge&quot;&gt;\draw&lt;/code&gt;. So while \(\LaTeX\) for these diagrams is already fairly concise, it is possible to make them even shorter!&lt;/p&gt;
+
+&lt;h1 id=&quot;references&quot;&gt;References&lt;/h1&gt;
+
+&lt;ol class=&quot;bibliography&quot;&gt;&lt;li&gt;&lt;span id=&quot;tantau2013&quot;&gt;Tantau, T. (2013). &lt;i&gt;The TikZ and PGF Packages&lt;/i&gt;. Retrieved from http://sourceforge.net/projects/pgf/&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span id=&quot;xie2015&quot;&gt;Xie, Y. (2015). &lt;i&gt;Dynamic documents with R and knitr&lt;/i&gt;.&lt;/span&gt;&lt;/li&gt;&lt;/ol&gt;
+</description>
+        <pubDate>Sun, 13 Mar 2016 16:27:47 -0400</pubDate>
+        <link>http://jacobcvt12.gitub.io/2016/hierarchical-tex.html</link>
+        <guid isPermaLink="true">http://jacobcvt12.gitub.io/2016/hierarchical-tex.html</guid>
+        
+        <category>LaTeX</category>
+        
+        <category>Hierarchical Models</category>
+        
+        
+      </item>
+    
+      <item>
         <title>Parallel Rcpp for MCMC diagnostics</title>
-        <description>&lt;p&gt;&lt;img src=&quot;/assets/img/multi-chains.jpg&quot; alt=&quot;Hypothetical Multiple MCMC Chains&quot; /&gt;&lt;/p&gt;
+        <description>&lt;p&gt;&lt;img src=&quot;/assets/img/multi-chains.svg&quot; alt=&quot;Hypothetical Multiple MCMC Chains&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;A common issue in Bayesian statistics and Markov Chain Monte Carlo is the concept of convergence. When approximating parameters by MCMC, we expect the chains to converge to the &lt;em&gt;stationary distributions&lt;/em&gt;. Visual inspection of a MCMC traceplot can suggest convergence, but a more robust solution is to use &lt;em&gt;multiple chains&lt;/em&gt;. If multiple have arrived at the same distribution, then we can be more certain of convergence.&lt;/p&gt;
 
@@ -172,7 +317,7 @@ s^2_n &amp; = \frac{\nu_0 s^2_0 + (n-1) \text{Var}(y) + n (\bar{y}-\mu)^2}{\nu_n
 
 &lt;p&gt;To investigate performance of parallel chains using open-MP, I simulated data from a normal distribution with 1,000, 10,000, 100,000, and 1,000,000 observations and benchmarked the above code with 1,000 iterations and 1,000 burnins. Below is a density plot of the timings (in milliseconds) by chain number as well as number of observations in the simulated data.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/assets/img/multi-chains-timings.jpg&quot; alt=&quot;Multiple MCMC Chains Timings&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/img/multi-chains-timings.svg&quot; alt=&quot;Multiple MCMC Chains Timings&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;While there is some overhead with adding an additional thread, going from 1 to 2 chains and 3 to 4 chains is mostly negligible. A more computationally intensive model would demonstrate the time savings of using open-MP for parallel chains even further.&lt;/p&gt;
 

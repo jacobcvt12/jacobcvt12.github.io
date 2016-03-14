@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Creating Hierarchical Model Diagrams with LaTeX</title>
+	<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Sans+Pro:400,300,300i,400i,600">
+	<link href='https://fonts.googleapis.com/css?family=Roboto+Mono:400,100italic,300italic,300' rel='stylesheet' type='text/css'>
+
+	
+		<link href='https://fonts.googleapis.com/css?family=Ubuntu:400,600' rel='stylesheet' type='text/css'>
+		
+	
+	<link rel="stylesheet" href="/css/main.css">
+	<link rel="stylesheet" href="/css/fontello-embedded.css">	
+</head>
+<body>
+	<div id="wrapper">
+		<div id="main">
+			<nav class="nav">
+				<div class="container">
+		  			<a href="/">
+						<h1 style="font-family: Ubuntu" class="logo"> 
+						
+							Statistical Computing for Bayesian Inference and Forecasting 
+						
+						</h1>
+					</a>
+		  			<ul class="navlist">
+		  			</ul>
+		  		</div>
+			</nav>
+			<div class="content post container">
+	<h1 class="post-title">Creating Hierarchical Model Diagrams with LaTeX</h1>
+	<div class="post-date">
+		<time>March 13, 2016</time>
+	</div>
+	<p>Bayesian models are often considered in a hierarchical fashion. Even when there is no multilevel structure to the data, the model can still be implicitly hierarchical due to the relationship of hyperparameters, parameters of interest, and data. The complicated structure of hierarchical models can be difficult to communicate to an audience using only random variable notation. A graphical <em>diagram</em> can be a helpful tool instead of or in addition to such notation. In this post, I show how to create diagrams for such hierarchical models.</p>
+
+<p>For a simple hierarchical Bayesian model, the structure can be described by a series of likelihoods, random variables, and the distributions which they follow. For example, the number of cases of pancreatic cancer may have been collected by county (with hypothetically standardized population sizes). A simple model for learning about this data could use a Poisson likelihood and a Gamma prior on the mean cancer cases with parameters <em>a</em> and <em>b</em>.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+y_i & \sim \text{Poisson}(\theta) \\
+\theta & \sim \text{Gamma}(a, b)
+\end{align} %]]></script>
+
+<p>While the above presentation of this simple model is concise and easy to understand, models with multiple levels of hierarchy can become unwieldy to describe in such a manner. Instead, the relationships between data and parameters is clearer and more interpretable through a diagram.</p>
+
+<p><img src="/assets/img/hierarchical-comparison.svg" alt="Just number" /></p>
+
+<p>I have created this diagram with the \(\LaTeX\) library Ti<em>k</em>Z <a href="#tantau2013">(Tantau, 2013)</a>. While there are several packages within Ti<em>k</em>Z for creating graphics, I have found <code class="highlighter-rouge">matrix</code> to be the most concise and easiest to learn.</p>
+
+<h1 id="tikz-and-diagrams-for-hierarchical-models">Ti<em>k</em>Z and diagrams for hierarchical models</h1>
+
+<p>The necessary preamble and code for creating a Ti<em>k</em>Z graphic is</p>
+
+<figure class="highlight"><pre><code class="language-tex" data-lang="tex"><span class="k">\documentclass</span><span class="p">{</span>article<span class="p">}</span>
+<span class="k">\usepackage</span><span class="p">{</span>tikz<span class="p">}</span>
+<span class="k">\usepackage</span><span class="p">{</span>amsmath<span class="p">}</span> 
+<span class="k">\usetikzlibrary</span><span class="p">{</span>matrix<span class="p">}</span> <span class="c">% note this is in the preamble</span>
+<span class="nt">\begin{document}</span>
+
+<span class="nt">\begin{tikzpicture}</span>
+
+<span class="c">% diagram here</span>
+
+<span class="nt">\end{tikzpicture}</span>
+<span class="nt">\end{document}</span></code></pre></figure>
+
+<p>To replicate the diagrams below, paste the code above the diagram into the section commented <code class="highlighter-rouge">% diagram here</code>.</p>
+
+<p>To begin building a diagram, note that a Ti<em>k</em>Z matrix should be thought of in terms of a linear algebra matrix. This matrix diagram is specified using <code class="highlighter-rouge">\matrix</code> followed by options of the matrix and the name of the matrix (here chosen to be <code class="highlighter-rouge">mat</code>). Cells on the same row are separated by <code class="highlighter-rouge">&amp;</code>’s, and new rows are begun by <code class="highlighter-rouge">\\</code>. If one row has more columns than the others (more <code class="highlighter-rouge">&amp;</code>’s), the other rows will have columns implicitly added to maintain a rectangular shape.</p>
+
+<figure class="highlight"><pre><code class="language-tex" data-lang="tex"><span class="k">\matrix</span><span class="na">[matrix of nodes]</span> (mat)
+<span class="p">{</span>
+    1 <span class="p">&amp;</span> 2 <span class="p">&amp;</span> 3 <span class="k">\\</span>
+    4 <span class="p">&amp;</span> 5 <span class="p">&amp;</span> 6 <span class="k">\\</span>
+    7 <span class="p">&amp;</span> 8 <span class="p">&amp;</span> 9 <span class="k">\\</span>
+<span class="p">}</span>;</code></pre></figure>
+
+<p><img src="/assets/img/hierarchical-graph-1.svg" alt="Just number" /></p>
+
+<p>For this matrix to look anything like a diagram of a hierarchical structure, we first need to replace the numbers with random variables and specify an option to spread the columns and rows further apart. To use <code class="highlighter-rouge">math mode</code> for the nodes (Ti<em>k</em>Z name for our parameters and data), we indicate the option <code class="highlighter-rouge">matrix of math nodes</code>. Additionally, we pass an option for separation of columns and rows. You may have to play with these distances, but I have found <code class="highlighter-rouge">20pt</code> to be an appropriate size for most hierarchical diagrams.</p>
+
+<p>Another point to make about the Ti<em>k</em>Z matrix is that empty “cells” are allowed. As you can see below, the top row doesn’t have values in the first cell (<em>before</em> the first <code class="highlighter-rouge">&amp;</code>) or the last cell (<em>after</em> the second <code class="highlighter-rouge">&amp;</code>). This is convenient for when wish to denote one parameter as being a higher level of hierarchy with multiple “children” parameters or data points in the next level of hierarchy.</p>
+
+<figure class="highlight"><pre><code class="language-tex" data-lang="tex"><span class="k">\matrix</span><span class="na">[matrix of math nodes, column sep=20pt, row sep=20pt]</span> (mat)
+<span class="p">{</span>
+    <span class="p">&amp;</span> <span class="k">\mu</span>, <span class="k">\tau</span><span class="p">^</span>2 <span class="p">&amp;</span> <span class="k">\\</span>
+    <span class="k">\theta</span><span class="p">_</span>1 <span class="p">&amp;</span> <span class="k">\ldots</span> <span class="p">&amp;</span> <span class="k">\theta</span><span class="p">_</span>n <span class="k">\\</span>
+    y<span class="p">_</span>1 <span class="p">&amp;</span> <span class="k">\ldots</span> <span class="p">&amp;</span> y<span class="p">_</span>n <span class="k">\\</span>
+    <span class="p">&amp;</span> <span class="k">\sigma</span><span class="p">^</span>2 <span class="p">&amp;</span> <span class="k">\\</span>
+<span class="p">}</span>;</code></pre></figure>
+
+<p><img src="/assets/img/hierarchical-graph-2.svg" alt="Just math" /></p>
+
+<p>Finally, to make the diagram worthwhile, we need to add directional arrows between the nodes and possibly text annotation to each level. For this step, we reference nodes by name to draw arrows. Node names are based on the name of matrix as well as the location of the cell using the rule <code class="highlighter-rouge">named-of-matrix_row-number_col-number</code>. In our example above, \(\sigma^2\) could be referenced by <code class="highlighter-rouge">mat-4-2</code>.</p>
+
+<p>To add these lines and descriptions, we first construct the matrix as before. Next, the <code class="highlighter-rouge">\draw</code> command draws a line from one node to the next. The first option (here <code class="highlighter-rouge">-&gt;</code> and <code class="highlighter-rouge">&lt;-</code>) specifies the direction of the arrow. I have placed the (shared) variance below the observations (\(y_i\)) and reversed the direction of the arrows to indicated hierarchy level. The second option listed (not required) specifies the type of arrowhead. To simplify the process, I use a <code class="highlighter-rouge">\foreach</code> loop to draw similar lines for columns 1 and 3.</p>
+
+<p>Next, the text descriptions are created via manually specified nodes. These nodes are “anchored” to already existing nodes in the diagram and placed relative to this anchor by distance and direction. Here I have chosen <code class="highlighter-rouge">-40pt</code> as my distance. Unfortunately, this number depends on the length of the text, and I have not found a better way for determining the distance other than through trial-and-error.</p>
+
+<figure class="highlight"><pre><code class="language-tex" data-lang="tex"><span class="k">\matrix</span><span class="na">[matrix of math nodes, column sep=20pt, row sep=20pt]</span> (mat)
+<span class="p">{</span>
+    <span class="p">&amp;</span> <span class="k">\mu</span>, <span class="k">\tau</span><span class="p">^</span>2 <span class="p">&amp;</span> <span class="k">\\</span> 
+    <span class="k">\theta</span><span class="p">_</span>1 <span class="p">&amp;</span> <span class="k">\ldots</span> <span class="p">&amp;</span> <span class="k">\theta</span><span class="p">_</span>n <span class="k">\\</span>
+    y<span class="p">_{</span>1,1<span class="p">}</span>, <span class="k">\ldots</span>, y<span class="p">_{</span>n<span class="p">_</span>1, 1<span class="p">}</span> <span class="p">&amp;</span> <span class="k">\ldots</span> <span class="p">&amp;</span> y<span class="p">_{</span>1, J<span class="p">}</span>, 
+    <span class="k">\ldots</span>, y<span class="p">_{</span>n<span class="p">_</span>J, J<span class="p">}</span> <span class="k">\\</span>
+    <span class="p">&amp;</span> <span class="k">\sigma</span><span class="p">^</span>2 <span class="p">&amp;</span> <span class="k">\\</span>
+<span class="p">}</span>;
+
+<span class="k">\foreach</span> <span class="k">\column</span> in <span class="p">{</span>1, 3<span class="p">}</span>
+<span class="p">{</span>
+    <span class="k">\draw</span><span class="na">[-&gt;,&gt;=latex]</span> (mat-1-2) -- (mat-2-<span class="k">\column</span>);
+    <span class="k">\draw</span><span class="na">[-&gt;,&gt;=latex]</span> (mat-2-<span class="k">\column</span>) -- (mat-3-<span class="k">\column</span>);
+    <span class="k">\draw</span><span class="na">[&lt;-,&gt;=latex]</span> (mat-3-<span class="k">\column</span>) -- (mat-4-2);
+<span class="p">}</span>
+
+<span class="k">\node</span><span class="na">[anchor=east]</span> at ([xshift =-40pt]mat-2-1) 
+<span class="p">{$</span><span class="nv">\theta</span><span class="p">_</span><span class="nb">j </span><span class="nv">\sim</span><span class="nb"> </span><span class="nv">\text</span><span class="p">{</span><span class="nb">N</span><span class="p">}</span><span class="o">(</span><span class="nv">\mu</span><span class="nb">, </span><span class="nv">\tau</span><span class="p">^</span><span class="m">2</span><span class="o">)</span><span class="p">$}</span>;
+<span class="k">\node</span><span class="na">[anchor=east]</span> at ([xshift =-40pt]mat-3-1) 
+<span class="p">{$</span><span class="nb">y</span><span class="p">_{</span><span class="nb">i, j</span><span class="p">}</span><span class="nb"> </span><span class="nv">\sim</span><span class="nb"> </span><span class="nv">\text</span><span class="p">{</span><span class="nb">N</span><span class="p">}</span><span class="o">(</span><span class="nv">\theta</span><span class="p">_</span><span class="nb">j, </span><span class="nv">\sigma</span><span class="p">^</span><span class="m">2</span><span class="o">)</span><span class="p">$}</span>;</code></pre></figure>
+
+<p><img src="/assets/img/hierarchical-graph-3.svg" alt="Include arrows and names" /></p>
+
+<h1 id="a-few-tweaks">A few tweaks</h1>
+
+<p>Sometimes, a model can be clarified by increasing the width between particular parameters or data. This can be done manually via an option to the <code class="highlighter-rouge">&amp;</code>. Additionally, you may want to highlight important parameters with a color.</p>
+
+<figure class="highlight"><pre><code class="language-tex" data-lang="tex"><span class="k">\matrix</span><span class="na">[matrix of math nodes, column sep=20pt, row sep=20pt]</span> (mat)
+<span class="p">{</span>
+    <span class="p">&amp;</span> <span class="k">\mu</span>, <span class="k">\tau</span><span class="p">^</span>2 <span class="p">&amp;</span> <span class="p">&amp;</span>[4em] <span class="k">\beta</span> <span class="k">\\</span> 
+    <span class="k">\theta</span><span class="p">_</span>1 <span class="p">&amp;</span> <span class="k">\ldots</span> <span class="p">&amp;</span> <span class="k">\theta</span><span class="p">_</span>n <span class="p">&amp;</span> <span class="k">\alpha</span> <span class="k">\\</span>
+    y<span class="p">_{</span>1,1<span class="p">}</span>, <span class="k">\ldots</span>, y<span class="p">_{</span>n<span class="p">_</span>1, 1<span class="p">}</span> <span class="p">&amp;</span> <span class="k">\ldots</span> <span class="p">&amp;</span> y<span class="p">_{</span>1, J<span class="p">}</span>, 
+    <span class="k">\ldots</span>, y<span class="p">_{</span>n<span class="p">_</span>J, J<span class="p">}</span> <span class="k">\\</span>
+    <span class="p">&amp;</span> |[blue]| <span class="k">\sigma</span><span class="p">^</span>2 <span class="p">&amp;</span> <span class="k">\\</span>
+<span class="p">}</span>;
+
+<span class="k">\foreach</span> <span class="k">\column</span> in <span class="p">{</span>1, 3<span class="p">}</span>
+<span class="p">{</span>
+    <span class="k">\draw</span><span class="na">[-&gt;,&gt;=latex]</span> (mat-1-2) -- (mat-2-<span class="k">\column</span>);
+    <span class="k">\draw</span><span class="na">[-&gt;,&gt;=latex]</span> (mat-2-<span class="k">\column</span>) -- (mat-3-<span class="k">\column</span>);
+    <span class="k">\draw</span><span class="na">[&lt;-,&gt;=latex]</span> (mat-3-<span class="k">\column</span>) -- (mat-4-2);
+<span class="p">}</span>
+
+<span class="k">\draw</span><span class="na">[-&gt;,&gt;=latex]</span> (mat-1-4) -- (mat-2-4);
+<span class="k">\draw</span><span class="na">[-&gt;,&gt;=latex]</span> (mat-2-4) -- (mat-3-3);
+
+<span class="k">\node</span><span class="na">[anchor=east]</span> at ([xshift =-40pt]mat-2-1) 
+<span class="p">{$</span><span class="nv">\theta</span><span class="p">_</span><span class="nb">j </span><span class="nv">\sim</span><span class="nb"> </span><span class="nv">\text</span><span class="p">{</span><span class="nb">N</span><span class="p">}</span><span class="o">(</span><span class="nv">\mu</span><span class="nb">, </span><span class="nv">\tau</span><span class="p">^</span><span class="m">2</span><span class="o">)</span><span class="p">$}</span>;
+<span class="k">\node</span><span class="na">[anchor=east]</span> at ([xshift =-40pt]mat-3-1) 
+<span class="p">{$</span><span class="nb">y</span><span class="p">_{</span><span class="nb">i, j</span><span class="p">}</span><span class="nb"> </span><span class="nv">\sim</span><span class="nb"> </span><span class="nv">\text</span><span class="p">{</span><span class="nb">N</span><span class="p">}</span><span class="o">(</span><span class="nv">\theta</span><span class="p">_</span><span class="nb">j </span><span class="o">+</span><span class="nb"> </span><span class="nv">\alpha</span><span class="nb">, </span><span class="nv">\sigma</span><span class="p">^</span><span class="m">2</span><span class="o">)</span><span class="p">$}</span>;</code></pre></figure>
+
+<p><img src="/assets/img/hierarchical-graph-4.svg" alt="Different Spacing" /></p>
+
+<h1 id="some-pitfalls-and-caveats">Some pitfalls and caveats</h1>
+
+<p>Using the <code class="highlighter-rouge">matrix</code> library limits one to a model that has nodes structured in a martrix formart. For example, if there are four paramaters at one level, but three on another level, you will either have ragged levels (ugly!), or have to structure your matrix to have 12 columns, with many empty nodes (tedious). For a situation like this, you may be better off using a different Ti<em>k</em>Z package.</p>
+
+<p>Additionally, the learning curve of creating hierarchical diagrams with \(\LaTeX\) is certainly higher than using a software like Adobe Illustrator. However, besides the obvious benefit of \(\LaTeX\) being free and open source, \(\LaTeX\) can be combined with <code class="highlighter-rouge">knitr</code> <a href="#xie2015">(Xie, 2015)</a> where the diagrams and analysis can be managed in one document.</p>
+
+<p>Finally, for the sake of clarity, I have avoided using shorter syntax at points. For example, the arrowhead option <code class="highlighter-rouge">&gt;=latex</code> can be given as an option to <code class="highlighter-rouge">\begin{tikzpicture}</code> instead of to each <code class="highlighter-rouge">\draw</code>. So while \(\LaTeX\) for these diagrams is already fairly concise, it is possible to make them even shorter!</p>
+
+<h1 id="references">References</h1>
+
+<ol class="bibliography"><li><span id="tantau2013">Tantau, T. (2013). <i>The TikZ and PGF Packages</i>. Retrieved from http://sourceforge.net/projects/pgf/</span></li>
+<li><span id="xie2015">Xie, Y. (2015). <i>Dynamic documents with R and knitr</i>.</span></li></ol>
+
+</div>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<div class="share-section">
+	<div class="container">
+		<div class="alignable pull-right">
+			<p> Share : 
+				<a target="_blank" href="https://twitter.com/intent/tweet?text=Creating Hierarchical Model Diagrams with LaTeX&url=http://jacobcvt12.gitub.io/2016/hierarchical-tex.html"><i class="icon-twitter"></i></a>
+				<a target="_blank" href="https://facebook.com/sharer/sharer.php?_rdr=p&u=http://jacobcvt12.gitub.io/2016/hierarchical-tex.html"><i class="icon-facebook"></i></a>
+			</p>
+		</div>
+	</div>
+</div>
+
+
+<hr class="gradient">
+<section class="about-footer">
+	<div class="container about-footer-div">
+		
+			<img class="profile-picture" src="/assets/img/jacobcarey.jpeg"alt="Jacob Carey" />
+		
+		
+			<a class="deactivate-link" href="/about"><h2>Jacob Carey</h2></a>
+		
+		
+	</div>
+</section>
+<hr class="gradient">
+
+
+
+
+<aside id="comments" class="disqus">
+	<div class="container">
+        <div id="disqus_thread"></div>
+        <script>
+            var disqus_developer = 1; // Comment out when the site is live
+        /**
+        * RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+        * LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+        */
+        /*
+           var disqus_config = function () {
+           this.page.url = PAGE_URL; // Replace PAGE_URL with your page's canonical URL variable
+           this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+           };
+           */
+        (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+
+            s.src = '//statisticalcomputing.disqus.com/embed.js';
+
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+    </div>
+</aside>
+
+
+
+		</div>
+		<div id="footer">
+			<footer>
+	<div class="container">
+		<div class="left-column-footer">
+			<p class="pull-left alignable">Statistical Computing for Bayesian Inference and Forecasting &copy; <script language="JavaScript" type="text/javascript">
+		now = new Date
+		theYear=now.getYear()
+		if (theYear < 1900)
+		theYear=theYear+1900
+		document.write(theYear)
+	</script></p>
+		</div>
+		<div class="right-column-footer">
+			<p class="pull-right alignable"> 
+				<a class="deactivate-link" href="/about">About</a>
+				| <a href="http://github.com/jacobcvt12"><i class="icon-github-circled"></i></a>
+			</p>
+		</div>
+		<div style="clear: both"></div>
+	</div>
+	
+		<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+	  ga('create', 'UA-73774891-1', 'auto');
+	  ga('send', 'pageview');
+
+		</script>
+	
+</footer>
+
+		</div>
+	</div>
+</body>
+</html>
